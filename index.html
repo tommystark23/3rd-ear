@@ -1,160 +1,1635 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="3rd Ear">
-<title>3rd Ear</title>
-<link rel="manifest" href="manifest.json">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
-    --blue: #3b82f6; --red: #ef4444; --green: #22c55e;
-    --text: #f1f5f9; --text2: #94a3b8; --border: #334155;
-  }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; overflow: hidden; }
-  #app { display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; }
-  .header { padding: 16px 20px 8px; display: flex; align-items: center; justify-content: space-between; }
-  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-  .header .ear { font-size: 28px; }
-  .tab-content { flex: 1; overflow-y: auto; padding: 0 0 80px; }
-  .page { display: none; padding: 20px; }
-  .page.active { display: block; }
-  .nav { display: flex; background: var(--bg2); border-top: 1px solid var(--border); position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; }
-  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0 16px; background: none; border: none; color: var(--text2); font-size: 10px; font-weight: 500; cursor: pointer; transition: color .2s; }
-  .nav-btn.active { color: var(--blue); }
-  .nav-btn svg { width: 24px; height: 24px; }
-  .record-center { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 32px; }
-  .mic-btn { width: 120px; height: 120px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .3s; }
-  .mic-btn.idle { background: var(--blue); }
-  .mic-btn.recording { background: var(--red); animation: pulse 1.5s infinite; }
-  .mic-btn.processing { background: var(--bg3); cursor: not-allowed; }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 70% { box-shadow: 0 0 0 20px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
-  .mic-btn svg { width: 48px; height: 48px; }
-  .record-status { font-size: 16px; color: var(--text2); text-align: center; min-height: 24px; }
-  .record-timer { font-size: 40px; font-weight: 200; letter-spacing: 2px; color: var(--red); min-height: 48px; }
-  .title-input { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; color: var(--text); font-size: 15px; outline: none; }
-  .title-input:focus { border-color: var(--blue); }
-  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-  .session-list { display: flex; flex-direction: column; gap: 8px; }
-  .session-card { background: var(--bg2); border-radius: 14px; padding: 16px; cursor: pointer; transition: background .2s; border: 1px solid var(--border); }
-  .session-card:active { background: var(--bg3); }
-  .session-card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .session-card-meta { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
-  .badge { background: var(--blue); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
-  .empty-state .icon { font-size: 60px; margin-bottom: 16px; }
-  .empty-state p { font-size: 15px; line-height: 1.5; }
-  .detail-view { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 100; flex-direction: column; max-width: 480px; margin: 0 auto; }
-  .detail-view.open { display: flex; }
-  .detail-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
-  .back-btn { background: none; border: none; color: var(--blue); font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-  .detail-title { font-size: 16px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .seg-control { display: flex; background: var(--bg3); border-radius: 10px; padding: 3px; margin: 16px 20px; }
-  .seg-btn { flex: 1; padding: 7px; border-radius: 8px; border: none; background: none; color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; }
-  .seg-btn.active { background: var(--bg2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.4); }
-  .detail-body { flex: 1; overflow-y: auto; padding: 0 20px 20px; }
-  .wiki-content { font-size: 15px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
-  .detail-footer { padding: 16px 20px; padding-bottom: max(16px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
-  .export-btn { width: 100%; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .2s; }
-  .export-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .settings-group { background: var(--bg2); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
-  .settings-row { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); gap: 12px; }
-  .settings-row:last-child { border-bottom: none; }
-  .settings-row label { font-size: 14px; color: var(--text2); min-width: 90px; flex-shrink: 0; }
-  .settings-row input, .settings-row textarea { flex: 1; background: none; border: none; color: var(--text); font-size: 15px; outline: none; }
-  .settings-row textarea { resize: none; min-height: 60px; padding-top: 2px; }
-  .eye-btn { background: none; border: none; color: var(--text2); cursor: pointer; padding: 4px; }
-  .check { color: var(--green); font-size: 16px; }
-  .settings-hint { font-size: 12px; color: var(--text2); margin-top: -12px; margin-bottom: 20px; padding: 0 4px; line-height: 1.5; }
-  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 1px solid var(--border); color: var(--text); padding: 12px 20px; border-radius: 12px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
-  .toast.show { opacity: 1; }
-  .toast.error { border-color: var(--red); color: #fca5a5; }
-  .toast.success { border-color: var(--green); color: #86efac; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a3a5c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="3rd Ear" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>3rd Ear — Dog Training Recorder</title>
+
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f1c2e;
+      --bg2:         #162436;
+      --card:        #1e2d42;
+      --card2:       #243650;
+      --border:      #2d4a6e;
+      --blue:        #1a3a5c;
+      --blue-light:  #2563eb;
+      --blue-glow:   rgba(37, 99, 235, 0.35);
+      --orange:      #f5813e;
+      --orange-dark: #d96930;
+      --orange-glow: rgba(245, 129, 62, 0.35);
+      --red:         #e53e3e;
+      --red-glow:    rgba(229, 62, 62, 0.4);
+      --green:       #48bb78;
+      --text:        #e8edf4;
+      --text2:       #94a3b8;
+      --text3:       #64748b;
+      --radius:      14px;
+      --radius-sm:   8px;
+      --shadow:      0 4px 24px rgba(0,0,0,0.4);
+      --header-h:    60px;
+      --nav-h:       68px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ===== APP SHELL ===== */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ===== HEADER ===== */
+    #app-header {
+      height: var(--header-h);
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-logo .ear-icon {
+      font-size: 22px;
+    }
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+    .header-title span {
+      color: var(--orange);
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    #main-content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+    }
+
+    .tab-pane {
+      display: none;
+      padding: 20px 16px;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
+      min-height: 100%;
+      animation: fadeIn 0.2s ease;
+    }
+    .tab-pane.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== BOTTOM NAV ===== */
+    #bottom-nav {
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: color 0.15s;
+      padding: 8px 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-btn.active { color: var(--orange); }
+    .nav-btn.active .nav-icon { filter: drop-shadow(0 0 6px var(--orange-glow)); }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text2);
+      margin-bottom: 16px;
+    }
+
+    /* ===== RECORD TAB ===== */
+    #record-status-card {
+      text-align: center;
+      padding: 32px 20px;
+    }
+
+    .session-title-display {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text2);
+      margin-bottom: 28px;
+      letter-spacing: 0.01em;
+    }
+
+    /* Mic button */
+    .mic-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      margin-bottom: 32px;
+    }
+
+    .mic-btn {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 44px;
+      transition: transform 0.15s, box-shadow 0.3s, background 0.3s;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .mic-btn.idle {
+      background: linear-gradient(135deg, #1e4d8c, #2563eb);
+      box-shadow: 0 0 0 0 var(--blue-glow), 0 8px 32px rgba(37,99,235,0.4);
+    }
+    .mic-btn.idle:active {
+      transform: scale(0.94);
+    }
+    .mic-btn.recording {
+      background: linear-gradient(135deg, #c53030, #e53e3e);
+      box-shadow: 0 0 0 0 var(--red-glow), 0 8px 32px rgba(229,62,62,0.5);
+      animation: pulse-ring 1.5s ease-out infinite;
+    }
+    .mic-btn.processing {
+      background: linear-gradient(135deg, #2d4a6e, #1a3a5c);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0 rgba(229,62,62,0.5), 0 8px 32px rgba(229,62,62,0.4); }
+      60%  { box-shadow: 0 0 0 22px rgba(229,62,62,0), 0 8px 32px rgba(229,62,62,0.4); }
+      100% { box-shadow: 0 0 0 0 rgba(229,62,62,0), 0 8px 32px rgba(229,62,62,0.4); }
+    }
+
+    /* Timer */
+    .timer-display {
+      font-size: 36px;
+      font-weight: 200;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      min-height: 48px;
+    }
+
+    /* Status message */
+    .status-msg {
+      font-size: 16px;
+      color: var(--text2);
+      min-height: 28px;
+      transition: color 0.3s;
+      font-weight: 500;
+    }
+    .status-msg.recording { color: var(--red); }
+    .status-msg.processing { color: var(--orange); }
+    .status-msg.success { color: var(--green); }
+    .status-msg.error { color: var(--red); font-size: 14px; }
+
+    /* Live transcript preview */
+    #live-transcript-card { display: none; }
+    #live-transcript-card.visible { display: block; }
+    #live-transcript-text {
+      font-size: 14px;
+      color: var(--text2);
+      line-height: 1.6;
+      max-height: 120px;
+      overflow-y: auto;
+      word-break: break-word;
+    }
+    #live-interim {
+      color: var(--text3);
+      font-style: italic;
+    }
+
+    /* Success card */
+    #success-card { display: none; }
+    #success-card.visible { display: block; }
+    .success-inner {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .success-icon { font-size: 40px; margin-bottom: 12px; }
+    .success-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 6px;
+    }
+    .success-sub {
+      font-size: 14px;
+      color: var(--text2);
+      margin-bottom: 20px;
+    }
+    .btn-view-entry {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-view-entry:active { transform: scale(0.96); background: var(--orange-dark); }
+
+    /* Hint text */
+    .hint-text {
+      font-size: 13px;
+      color: var(--text3);
+      text-align: center;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* Speech API warning */
+    #speech-warning {
+      display: none;
+      background: rgba(245,129,62,0.1);
+      border: 1px solid var(--orange);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 14px;
+      color: var(--orange);
+      text-align: center;
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+    #speech-warning.visible { display: block; }
+
+    /* ===== WIKI TAB ===== */
+    .wiki-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text3);
+    }
+    .wiki-empty .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .wiki-empty p { font-size: 15px; line-height: 1.6; }
+
+    .session-list { display: flex; flex-direction: column; gap: 12px; }
+    .session-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .session-item:active { background: var(--card2); transform: scale(0.98); }
+    .session-item-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--blue-light));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .session-item-body { flex: 1; min-width: 0; }
+    .session-item-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .session-item-meta {
+      font-size: 12px;
+      color: var(--text3);
+    }
+    .session-item-badge {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 50px;
+      background: rgba(245,129,62,0.15);
+      color: var(--orange);
+    }
+    .session-item-badge.no-wiki {
+      background: rgba(100,116,139,0.15);
+      color: var(--text3);
+    }
+
+    /* ===== SESSION DETAIL VIEW ===== */
+    #detail-view {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 100;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    #detail-view.open { display: flex; }
+
+    .detail-header {
+      height: var(--header-h);
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--orange);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-title {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .detail-delete-btn {
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Tab switcher inside detail */
+    .detail-tabs {
+      display: flex;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .detail-tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text3);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 14px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-tab-btn.active {
+      color: var(--orange);
+      border-bottom-color: var(--orange);
+    }
+
+    .detail-content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px 16px;
+      padding-bottom: calc(80px + var(--safe-bottom));
+    }
+    .detail-text {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .detail-text.empty {
+      color: var(--text3);
+      font-style: italic;
+    }
+    .detail-meta {
+      font-size: 13px;
+      color: var(--text3);
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Wiki markdown rendering */
+    .wiki-rendered h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--orange);
+      margin: 20px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .wiki-rendered h2:first-child { margin-top: 0; }
+    .wiki-rendered p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .wiki-rendered ul {
+      padding-left: 18px;
+      margin-bottom: 10px;
+    }
+    .wiki-rendered li {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .wiki-rendered strong { color: var(--orange); }
+
+    /* Export button */
+    .detail-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0; right: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      padding-bottom: calc(14px + var(--safe-bottom));
+      z-index: 101;
+    }
+    .btn-export {
+      width: 100%;
+      background: linear-gradient(135deg, #1557b0, #2563eb);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 15px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-export:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-export:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ===== SETTINGS TAB ===== */
+    .settings-section { margin-bottom: 24px; }
+    .settings-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text2);
+      margin-bottom: 8px;
+      letter-spacing: 0.03em;
+    }
+    .settings-input,
+    .settings-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 15px;
+      padding: 12px 14px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .settings-input:focus,
+    .settings-textarea:focus {
+      border-color: var(--orange);
+    }
+    .settings-textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.5;
+    }
+
+    /* Password field with toggle */
+    .pw-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .pw-wrap .settings-input { padding-right: 78px; }
+    .pw-toggle {
+      position: absolute;
+      right: 40px;
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pw-check {
+      position: absolute;
+      right: 12px;
+      font-size: 18px;
+      transition: opacity 0.2s;
+    }
+    .pw-check.visible { color: var(--green); opacity: 1; }
+    .pw-check.hidden { opacity: 0; }
+
+    .settings-hint {
+      font-size: 12px;
+      color: var(--text3);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    .settings-hint a { color: var(--blue-light); }
+
+    .settings-save-btn {
+      width: 100%;
+      background: var(--orange);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .settings-save-btn:active { background: var(--orange-dark); transform: scale(0.97); }
+    .settings-saved-msg {
+      text-align: center;
+      font-size: 14px;
+      color: var(--green);
+      margin-top: 10px;
+      height: 20px;
+      transition: opacity 0.5s;
+    }
+
+    .app-version {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text3);
+      padding: 16px 0 8px;
+    }
+
+    /* ===== TOAST ===== */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(30,45,66,0.95);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 10px 20px;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      backdrop-filter: blur(12px);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ===== MISC ===== */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+  </style>
 </head>
 <body>
+
+<!-- ==================== APP SHELL ==================== -->
 <div id="app">
-  <div class="header"><h1>3rd Ear</h1><span class="ear">🐕</span></div>
-  <div class="tab-content">
-    <div id="page-record" class="page active">
-      <div class="record-center">
-        <div class="record-timer" id="timer"></div>
-        <button class="mic-btn idle" id="micBtn" onclick="toggleRecord()">
-          <svg id="micIcon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
-        </button>
-        <div class="record-status" id="statusMsg">Tap to start recording</div>
-        <input class="title-input" id="sessionTitleInput" placeholder="Session title" style="display:none">
-      </div>
+
+  <!-- Header -->
+  <header id="app-header">
+    <div class="header-logo">
+      <span class="ear-icon">🐾</span>
+      <span class="header-title">3<span>rd</span> Ear</span>
     </div>
-    <div id="page-wiki" class="page">
-      <div class="section-title">Training Sessions</div>
-      <div id="sessionList" class="session-list"></div>
-      <div id="emptyState" class="empty-state" style="display:none">
-        <div class="icon">📖</div>
-        <p>No sessions yet.<br>Record a training session<br>to build your wiki.</p>
+  </header>
+
+  <!-- Tab Content -->
+  <main id="main-content">
+
+    <!-- ===== RECORD TAB ===== -->
+    <section id="tab-record" class="tab-pane active">
+
+      <div class="card" id="record-status-card">
+        <div class="session-title-display" id="session-title-display">Ready to record</div>
+
+        <div class="mic-wrap">
+          <button class="mic-btn idle" id="mic-btn" aria-label="Start recording">🎙️</button>
+          <div class="timer-display" id="timer-display"></div>
+        </div>
+
+        <div class="status-msg" id="status-msg">Tap the mic to start</div>
+        <div class="hint-text" id="hint-text">Your iPhone will transcribe as you speak</div>
       </div>
-    </div>
-    <div id="page-settings" class="page">
-      <div class="section-title">Profile</div>
-      <div class="settings-group">
-        <div class="settings-row"><label>Dog's Name</label><input type="text" id="dogName" placeholder="e.g. Bella" oninput="saveSetting('dogName',this.value)"></div>
-        <div class="settings-row"><label>Your Name</label><input type="text" id="trainerName" placeholder="e.g. Tommy" oninput="saveSetting('trainerName',this.value)"></div>
-        <div class="settings-row" style="align-items:flex-start"><label style="padding-top:2px">Goals</label><textarea id="trainingGoals" placeholder="What are you working on?" oninput="saveSetting('trainingGoals',this.value)"></textarea></div>
+
+      <div id="speech-warning">
+        <strong>Heads up:</strong> Speech recognition isn't available in this browser. Try opening this app in <strong>Safari</strong> on your iPhone for best results.
       </div>
-      <div class="section-title">Integrations</div>
-      <div class="settings-group">
-        <div class="settings-row"><label>Claude Key</label><input type="password" id="anthropicKey" placeholder="sk-ant-..." oninput="saveSetting('anthropicKey',this.value)"><button class="eye-btn" onclick="toggleVis('anthropicKey')">👁</button><span id="anthropicCheck" class="check" style="display:none">✓</span></div>
-        <div class="settings-row"><label>Drive Token</label><input type="password" id="driveToken" placeholder="ya29..." oninput="saveSetting('driveToken',this.value)"><button class="eye-btn" onclick="toggleVis('driveToken')">👁</button><span id="driveCheck" class="check" style="display:none">✓</span></div>
+
+      <!-- Live transcript preview -->
+      <div class="card" id="live-transcript-card">
+        <div class="card-title">Live Transcript</div>
+        <div id="live-transcript-text">
+          <span id="live-final"></span><span id="live-interim"></span>
+        </div>
       </div>
-      <p class="settings-hint">Claude API key: get one free at console.anthropic.com</p>
-      <p class="settings-hint">Google Drive token: optional. Generate at developers.google.com/oauthplayground</p>
-    </div>
-  </div>
-  <nav class="nav">
-    <button class="nav-btn active" id="nav-record" onclick="showPage('record')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Record</button>
-    <button class="nav-btn" id="nav-wiki" onclick="showPage('wiki')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Wiki</button>
-    <button class="nav-btn" id="nav-settings" onclick="showPage('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
+
+      <!-- Success state -->
+      <div class="card" id="success-card">
+        <div class="success-inner">
+          <div class="success-icon">✅</div>
+          <div class="success-title">Session Saved!</div>
+          <div class="success-sub" id="success-sub">Your wiki entry is ready to view.</div>
+          <button class="btn-view-entry" id="btn-view-entry">📖 View Entry</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===== WIKI TAB ===== -->
+    <section id="tab-wiki" class="tab-pane">
+      <div id="wiki-list-container"></div>
+    </section>
+
+    <!-- ===== SETTINGS TAB ===== -->
+    <section id="tab-settings" class="tab-pane">
+
+      <div class="card">
+        <div class="card-title">🐕 Session Info</div>
+
+        <div class="settings-section">
+          <label class="settings-label" for="s-dog-name">Dog's Name</label>
+          <input class="settings-input" type="text" id="s-dog-name" placeholder="e.g. Bella" autocomplete="off" />
+        </div>
+
+        <div class="settings-section">
+          <label class="settings-label" for="s-trainer-name">Trainer Name</label>
+          <input class="settings-input" type="text" id="s-trainer-name" placeholder="e.g. Tommy Stark" autocomplete="off" />
+        </div>
+
+        <div class="settings-section">
+          <label class="settings-label" for="s-goals">Training Goals</label>
+          <textarea class="settings-textarea" id="s-goals" placeholder="e.g. Off-leash recall, loose leash walking, impulse control..."></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🤖 Claude AI</div>
+
+        <div class="settings-section">
+          <label class="settings-label" for="s-claude-key">Claude API Key</label>
+          <div class="pw-wrap">
+            <input class="settings-input" type="password" id="s-claude-key" placeholder="sk-ant-..." autocomplete="off" />
+            <button class="pw-toggle" data-target="s-claude-key" aria-label="Show/hide key">👁️</button>
+            <span class="pw-check hidden" id="s-claude-key-check">✅</span>
+          </div>
+          <div class="settings-hint">
+            Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. Without it, sessions save transcript only.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">☁️ Google Drive</div>
+
+        <div class="settings-section">
+          <label class="settings-label" for="s-drive-token">Google Drive Access Token</label>
+          <div class="pw-wrap">
+            <input class="settings-input" type="password" id="s-drive-token" placeholder="ya29...." autocomplete="off" />
+            <button class="pw-toggle" data-target="s-drive-token" aria-label="Show/hide token">👁️</button>
+            <span class="pw-check hidden" id="s-drive-token-check">✅</span>
+          </div>
+          <div class="settings-hint">
+            Paste a Google OAuth2 access token to enable Drive export. Tokens expire after ~1 hour. Export individual sessions from the Wiki tab.
+          </div>
+        </div>
+      </div>
+
+      <button class="settings-save-btn" id="settings-save-btn">Save Settings</button>
+      <div class="settings-saved-msg" id="settings-saved-msg"></div>
+
+      <div class="app-version">3rd Ear v1.0 · Made for iSpeakDog 🐾</div>
+
+    </section>
+
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav id="bottom-nav">
+    <button class="nav-btn active" data-tab="record">
+      <span class="nav-icon">🎙️</span>
+      <span>Record</span>
+    </button>
+    <button class="nav-btn" data-tab="wiki">
+      <span class="nav-icon">📖</span>
+      <span>Wiki</span>
+    </button>
+    <button class="nav-btn" data-tab="settings">
+      <span class="nav-icon">ښ�️</span>
+      <span>Settings</span>
+    </button>
   </nav>
+
+</div><!-- /#app -->
+
+<!-- ==================== SESSION DETAIL VIEW ==================== -->
+<div id="detail-view">
+  <div class="detail-header">
+    <button class="back-btn" id="back-btn" aria-label="Go back">‹</button>
+    <div class="detail-title" id="detail-title"></div>
+    <button class="detail-delete-btn" id="detail-delete-btn" aria-label="Delete session">🗑️</button>
+  </div>
+
+  <div class="detail-tabs">
+    <button class="detail-tab-btn active" data-detail-tab="wiki">📋 Wiki Entry</button>
+    <button class="detail-tab-btn" data-detail-tab="transcript">🎙️ Transcript</button>
+  </div>
+
+  <div class="detail-content" id="detail-content"></div>
+
+  <div class="detail-footer">
+    <button class="btn-export" id="btn-export">
+      <span>☁️</span> Export to Google Drive
+    </button>
+  </div>
 </div>
-<div class="detail-view" id="detailView">
-  <div class="detail-header"><button class="back-btn" onclick="closeDetail()">‹ Back</button><div class="detail-title" id="detailTitle"></div></div>
-  <div class="seg-control"><button class="seg-btn active" id="seg-wiki" onclick="showSeg('wiki')">Wiki Entry</button><button class="seg-btn" id="seg-transcript" onclick="showSeg('transcript')">Transcript</button></div>
-  <div class="detail-body"><div id="detailWiki" class="wiki-content"></div><div id="detailTranscript" class="wiki-content" style="display:none"></div></div>
-  <div class="detail-footer"><button class="export-btn" id="exportBtn" onclick="exportToDrive()">↑ Export to Google Drive</button></div>
-</div>
-<div class="toast" id="toast"></div>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<!-- ==================== JAVASCRIPT ==================== -->
 <script>
-let isRecording=false,mediaRecorder=null,audioChunks=[],timerInterval=null,timerSec=0,recognition=null,liveTranscript='',currentSession=null;
-function saveSetting(k,v){localStorage.setItem(k,v);updateChecks();}
-function getSetting(k,d=''){return localStorage.getItem(k)||d;}
-function loadSettings(){document.getElementById('dogName').value=getSetting('dogName');document.getElementById('trainerName').value=getSetting('trainerName');document.getElementById('trainingGoals').value=getSetting('trainingGoals');document.getElementById('anthropicKey').value=getSetting('anthropicKey');document.getElementById('driveToken').value=getSetting('driveToken');updateChecks();}
-function updateChecks(){document.getElementById('anthropicCheck').style.display=getSetting('anthropicKey')?'inline':'none';document.getElementById('driveCheck').style.display=getSetting('driveToken')?'inline':'none';}
-function toggleVis(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
-function showPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page).classList.add('active');document.getElementById('nav-'+page).classList.add('active');if(page==='wiki')renderWiki();}
-async function toggleRecord(){if(isRecording){stopRecording();}else{await startRecording();}}
-async function startRecording(){try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});audioChunks=[];liveTranscript='';mediaRecorder=new MediaRecorder(stream);mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);mediaRecorder.start(100);const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(SR){recognition=new SR();recognition.continuous=true;recognition.interimResults=true;recognition.lang='en-US';let ft='';recognition.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)ft+=e.results[i][0].transcript+' ';else interim+=e.results[i][0].transcript;}liveTranscript=ft+interim;};recognition.onerror=()=>{};recognition.start();}isRecording=true;timerSec=0;timerInterval=setInterval(()=>{timerSec++;const m=String(Math.floor(timerSec/60)).padStart(2,'0');const s=String(timerSec%60).padStart(2,'0');document.getElementById('timer').textContent=m+':'+s;},1000);document.getElementById('micBtn').className='mic-btn recording';document.getElementById('statusMsg').textContent='Recording... speak naturally';document.getElementById('sessionTitleInput').style.display='none';}catch(e){showToast('Microphone access required. Check Safari Settings > Websites > Microphone.','error');}}
-function stopRecording(){isRecording=false;clearInterval(timerInterval);if(recognition){try{recognition.stop();}catch(e){}}if(mediaRecorder){mediaRecorder.stop();mediaRecorder.stream.getTracks().forEach(t=>t.stop());}document.getElementById('micBtn').className='mic-btn processing';document.getElementById('statusMsg').textContent='Processing...';const now=new Date();const title=`Session — ${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})} at ${now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;document.getElementById('sessionTitleInput').value=title;document.getElementById('sessionTitleInput').style.display='block';setTimeout(()=>processSession(title),800);}
-async function processSession(title){const transcript=liveTranscript.trim()||'(No transcript captured)';const apiKey=getSetting('anthropicKey');let wikiEntry='';if(apiKey){document.getElementById('statusMsg').textContent='Claude is writing your wiki entry...';try{wikiEntry=await generateWiki(transcript,apiKey);}catch(e){console.error(e);}}const customTitle=document.getElementById('sessionTitleInput').value.trim()||title;saveSession({id:Date.now(),title:customTitle,date:new Date().toISOString(),transcript,wikiEntry});document.getElementById('micBtn').className='mic-btn idle';document.getElementById('statusMsg').textContent='';document.getElementById('timer').textContent='';document.getElementById('sessionTitleInput').style.display='none';showToast('Session saved to Wiki ✓','success');}
-async function generateWiki(transcript,apiKey){const dog=getSetting('dogName','the dog');const trainer=getSetting('trainerName','the trainer');const goals=getSetting('trainingGoals','');const prompt=`You are a professional dog training assistant for ${trainer}. Analyze this training session transcript.\n\nDog: ${dog}\n${goals?'Training goals: '+goals:''}\n\nTranscript:\n${transcript}\n\nWrite a wiki entry:\n📋 SESSION SUMMARY\n[2-3 sentences]\n\n🎯 COMMANDS PRACTICED\n[bullet list]\n\n🐕 DOG'S RESPONSE\n[how dog responded]\n\n📝 TRAINER NOTES\n[recommendations for next session]`;const body=JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]});let response;try{response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body});}catch(e){response=await fetch('https://corsproxy.io/?url=https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},body});}if(!response.ok){if(response.status===401)throw new Error('Invalid API key');throw new Error('Error '+response.status);}const data=await response.json();return data.content[0].text;}
-function saveSession(s){const sessions=getSessions();sessions.unshift(s);localStorage.setItem('sessions',JSON.stringify(sessions));}
-function getSessions(){try{return JSON.parse(localStorage.getItem('sessions')||'[]');}catch(e){return[];}}
-function renderWiki(){const sessions=getSessions();const list=document.getElementById('sessionList');const empty=document.getElementById('emptyState');if(!sessions.length){list.style.display='none';empty.style.display='block';return;}list.style.display='flex';empty.style.display='none';list.innerHTML=sessions.map((s,i)=>`<div class="session-card" onclick="openDetail(${i})"><div class="session-card-title">${escHtml(s.title)}</div><div class="session-card-meta"><span>${new Date(s.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>${s.wikiEntry?'<span class="badge">WIKI</span>':''}</div></div>`).join('');}
-function openDetail(idx){const session=getSessions()[idx];currentSession=session;document.getElementById('detailTitle').textContent=session.title;document.getElementById('detailWiki').textContent=session.wikiEntry||'(No wiki entry — add Claude API key in Settings)';document.getElementById('detailTranscript').textContent=session.transcript||'(No transcript)';showSeg('wiki');document.getElementById('detailView').classList.add('open');}
-function closeDetail(){document.getElementById('detailView').classList.remove('open');currentSession=null;}
-function showSeg(seg){document.getElementById('detailWiki').style.display=seg==='wiki'?'block':'none';document.getElementById('detailTranscript').style.display=seg==='transcript'?'block':'none';document.getElementById('seg-wiki').classList.toggle('active',seg==='wiki');document.getElementById('seg-transcript').classList.toggle('active',seg==='transcript');}
-async function exportToDrive(){const token=getSetting('driveToken');if(!token){showToast('Add Google Drive token in Settings','error');return;}if(!currentSession)return;const btn=document.getElementById('exportBtn');btn.disabled=true;btn.textContent='Exporting...';const content=`3rd Ear Training Session\n${'='.repeat(40)}\nTitle: ${currentSession.title}\nDate: ${new Date(currentSession.date).toLocaleString()}\n\nWIKI ENTRY\n${'-'.repeat(20)}\n${currentSession.wikiEntry||'(none)'}\n\nTRANSCRIPT\n${'-'.repeat(20)}\n${currentSession.transcript||'(none)'}`;const boundary='boundary_'+Date.now();const meta=JSON.stringify({name:currentSession.title.replace(/[^a-zA-Z0-9 _-]/g,'')+'.txt',mimeType:'text/plain'});let body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: text/plain\r\n\r\n${content}\r\n--${boundary}--`;try{const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'multipart/related; boundary='+boundary},body});if(res.status===401)throw new Error('Token expired');if(!res.ok)throw new Error('Drive error '+res.status);showToast('Saved to Google Drive ✓','success');}catch(e){showToast(e.message,'error');}btn.disabled=false;btn.textContent='↑ Export to Google Drive';}
-function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(()=>t.className='toast',3000);}
-function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-loadSettings();
-if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').catch(()=>{});}
+'use strict';
+
+// ─────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────
+const state = {
+  currentTab: 'record',
+  currentDetailTab: 'wiki',
+  sessions: [],         // [{id, title, date, transcript, wikiEntry}]
+  settings: {},         // {dogName, trainerName, trainingGoals, claudeApiKey, driveToken}
+  isRecording: false,
+  isProcessing: false,
+  timerInterval: null,
+  recordingSeconds: 0,
+  currentSessionId: null,  // session being viewed in detail
+  lastSavedId: null,       // most recent save, for "View Entry" button
+  transcript: '',
+  speechRec: null,
+  speechAvailable: false,
+};
+
+// ─────────────────────────────────────────────────────────
+// STORAGE
+// ─────────────────────────────────────────────────────────
+function loadSessions() {
+  try {
+    state.sessions = JSON.parse(localStorage.getItem('3rdear_sessions') || '[]');
+  } catch(e) {
+    state.sessions = [];
+  }
+}
+
+function saveSessions() {
+  try {
+    localStorage.setItem('3rdear_sessions', JSON.stringify(state.sessions));
+  } catch(e) {
+    showToast('⚠️ Storage full. Try deleting old sessions.');
+  }
+}
+
+function loadSettings() {
+  try {
+    state.settings = JSON.parse(localStorage.getItem('3rdear_settings') || '{}');
+  } catch(e) {
+    state.settings = {};
+  }
+}
+
+function saveSettings() {
+  localStorage.setItem('3rdear_settings', JSON.stringify(state.settings));
+}
+
+function saveSession(session) {
+  const idx = state.sessions.findIndex(s => s.id === session.id);
+  if (idx >= 0) {
+    state.sessions[idx] = session;
+  } else {
+    state.sessions.unshift(session);
+  }
+  saveSessions();
+}
+
+function deleteSession(id) {
+  state.sessions = state.sessions.filter(s => s.id !== id);
+  saveSessions();
+}
+
+// ─────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────
+function switchTab(tab) {
+  state.currentTab = tab;
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector(`.nav-btn[data-tab="${tab}"]`).classList.add('active');
+
+  if (tab === 'wiki') renderWikiList();
+  if (tab === 'settings') populateSettings();
+}
+
+// ─────────────────────────────────────────────────────────
+// SPEECH RECOGNITION
+// ─────────────────────────────────────────────────────────
+function initSpeech() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    state.speechAvailable = false;
+    document.getElementById('speech-warning').classList.add('visible');
+    return;
+  }
+  state.speechAvailable = true;
+
+  const rec = new SpeechRecognition();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = 'en-US';
+  rec.maxAlternatives = 1;
+
+  let finalTranscript = '';
+
+  rec.onstart = () => {
+    console.log('Speech recognition started');
+  };
+
+  rec.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const result = event.results[i];
+      if (result.isFinal) {
+        finalTranscript += result[0].transcript + ' ';
+        state.transcript = finalTranscript;
+      } else {
+        interim += result[0].transcript;
+      }
+    }
+    // Update live transcript
+    document.getElementById('live-final').textContent = finalTranscript;
+    document.getElementById('live-interim').textContent = interim;
+    // Auto-scroll
+    const lt = document.getElementById('live-transcript-text');
+    lt.scrollTop = lt.scrollHeight;
+  };
+
+  rec.onend = () => {
+    // Auto-restart if still recording (iOS stops after ~60s of silence)
+    if (state.isRecording) {
+      try { rec.start(); } catch(e) { console.warn('Speech restart failed:', e); }
+    }
+  };
+
+  rec.onerror = (event) => {
+    console.error('Speech error:', event.error);
+    if (event.error === 'not-allowed') {
+      stopRecording();
+      setStatus('Microphone access denied. Please allow it in Settings → Safari → Microphone.', 'error');
+    } else if (event.error === 'no-speech') {
+      // No speech detected — just restart quietly if still recording
+    }
+  };
+
+  state.speechRec = rec;
+  // Expose reset function
+  state.speechRec._resetTranscript = () => { finalTranscript = ''; };
+}
+
+// ─────────────────────────────────────────────────────────
+// RECORDING FLOW
+// ─────────────────────────────────────────────────────────
+function generateSessionTitle() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const dog = state.settings.dogName ? ` · ${state.settings.dogName}` : '';
+  return `${dateStr} at ${timeStr}${dog}`;
+}
+
+function startRecording() {
+  if (state.isProcessing) return;
+
+  // Reset state
+  state.transcript = '';
+  state.isRecording = true;
+  state.recordingSeconds = 0;
+  document.getElementById('live-final').textContent = '';
+  document.getElementById('live-interim').textContent = '';
+
+  if (state.speechRec) {
+    state.speechRec._resetTranscript();
+    try { state.speechRec.start(); } catch(e) { console.warn(e); }
+  }
+
+  // Update UI
+  const micBtn = document.getElementById('mic-btn');
+  micBtn.className = 'mic-btn recording';
+  micBtn.textContent = '⏹️';
+  micBtn.setAttribute('aria-label', 'Stop recording');
+
+  const title = generateSessionTitle();
+  document.getElementById('session-title-display').textContent = title;
+  setStatus('Recording...', 'recording');
+  document.getElementById('hint-text').textContent = 'Speak clearly · Tap ⏹ to stop';
+
+  document.getElementById('live-transcript-card').classList.add('visible');
+  document.getElementById('success-card').classList.remove('visible');
+
+  // Timer
+  document.getElementById('timer-display').textContent = '0:00';
+  state.timerInterval = setInterval(() => {
+    state.recordingSeconds++;
+    const m = Math.floor(state.recordingSeconds / 60);
+    const s = String(state.recordingSeconds % 60).padStart(2, '0');
+    document.getElementById('timer-display').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function stopRecording() {
+  if (!state.isRecording && !state.isProcessing) return;
+  state.isRecording = false;
+
+  if (state.speechRec) {
+    try { state.speechRec.stop(); } catch(e) {}
+  }
+
+  clearInterval(state.timerInterval);
+
+  const micBtn = document.getElementById('mic-btn');
+  micBtn.className = 'mic-btn processing';
+  micBtn.textContent = '⏳';
+
+  state.isProcessing = true;
+  processSession();
+}
+
+async function processSession() {
+  const transcript = state.transcript.trim();
+  const title = document.getElementById('session-title-display').textContent;
+
+  // Create session object
+  const session = {
+    id: Date.now().toString(),
+    title: title,
+    date: new Date().toISOString(),
+    transcript: transcript || '(No speech detected)',
+    wikiEntry: '',
+    durationSeconds: state.recordingSeconds,
+  };
+
+  if (!transcript) {
+    // Nothing recorded
+    setStatus("Hmm, nothing was transcribed. Try again?", 'error');
+    resetMicBtn();
+    state.isProcessing = false;
+    return;
+  }
+
+  setStatus('Transcription complete!', '');
+  await sleep(500);
+
+  if (state.settings.claudeApiKey) {
+    setStatus('Claude is writing your wiki entry...', 'processing');
+    document.getElementById('mic-btn').textContent = '✍️';
+    try {
+      session.wikiEntry = await callClaudeAPI(transcript);
+    } catch(err) {
+      console.error('Claude API error:', err);
+      session.wikiEntry = '';
+      showToast('⚠️ Couldn\'t reach Claude — transcript saved anyway.');
+    }
+  } else {
+    showToast('💡 Add a Claude API key in Settings to generate wiki entries.');
+  }
+
+  // Save
+  saveSession(session);
+  state.lastSavedId = session.id;
+
+  setStatus('Saved!', 'success');
+  document.getElementById('hint-text').textContent = '';
+  document.getElementById('timer-display').textContent = '';
+
+  // Show success card
+  document.getElementById('success-card').classList.add('visible');
+  document.getElementById('success-sub').textContent = session.wikiEntry
+    ? 'Your wiki entry is ready to view.'
+    : 'Transcript saved. Add a Claude API key to generate wiki entries.';
+
+  resetMicBtn();
+  state.isProcessing = false;
+}
+
+function resetMicBtn() {
+  const micBtn = document.getElementById('mic-btn');
+  micBtn.className = 'mic-btn idle';
+  micBtn.textContent = '🎙️';
+  micBtn.setAttribute('aria-label', 'Start recording');
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (type ? ' ' + type : '');
+}
+
+// ─────────────────────────────────────────────────────────
+// CLAUDE API
+// ─────────────────────────────────────────────────────────
+async function callClaudeAPI(transcript) {
+  const { claudeApiKey, dogName, trainerName, trainingGoals } = state.settings;
+
+  const dogStr = dogName || 'the dog';
+  const trainerStr = trainerName || 'the trainer';
+  const goalsStr = trainingGoals || 'general obedience and behavior improvement';
+
+  const systemPrompt = `You are an expert dog training documentation assistant for ${trainerStr}, a professional dog trainer in Orange County, CA. Your job is to transform raw training session transcripts into clean, structured wiki entries. Be concise, practical, and encouraging. Use ## headers exactly as specified.`;
+
+  const userPrompt = `Please create a structured wiki entry for this dog training session.
+
+Dog: ${dogStr}
+Trainer: ${trainerStr}
+Training Goals: ${goalsStr}
+
+Session Transcript:
+---
+${transcript}
+---
+
+Write the wiki entry using EXACTLY these sections with ## headers:
+
+## Session Summary
+2-3 sentences covering what was worked on and the overall result.
+
+## Commands Practiced
+List each command or skill practiced with a brief note on how it went.
+
+## ${dogStr}'s Response
+How did ${dogStr} do? What clicked? What needs more work? Be specific and positive.
+
+## Trainer Notes
+Key observations, insights, what to focus on next session, any patterns noticed.
+
+Keep it professional, practical, and under 400 words total.`;
+
+  const payload = {
+    model: 'claude-sonnet-4-6',
+    max_tokens: 800,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }]
+  };
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': claudeApiKey,
+    'anthropic-version': '2023-06-01',
+  };
+
+  // Try direct first (works in some environments), fall back to CORS proxy
+  const endpoints = [
+    'https://corsproxy.io/?url=' + encodeURIComponent('https://api.anthropic.com/v1/messages'),
+    'https://api.anthropic.com/v1/messages',
+  ];
+
+  let lastError;
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.content[0].text;
+      } else {
+        const errText = await res.text();
+        lastError = new Error(`API ${res.status}: ${errText.slice(0, 200)}`);
+      }
+    } catch(e) {
+      lastError = e;
+      continue;
+    }
+  }
+  throw lastError;
+}
+
+// ─────────────────────────────────────────────────────────
+// WIKI LIST
+// ─────────────────────────────────────────────────────────
+function renderWikiList() {
+  const container = document.getElementById('wiki-list-container');
+  loadSessions();
+
+  if (state.sessions.length === 0) {
+    container.innerHTML = `
+      <div class="wiki-empty">
+        <div class="empty-icon">🎙️</div>
+        <p>No sessions yet.<br>Head to the <strong>Record</strong> tab to start your first session!</p>
+      </div>`;
+    return;
+  }
+
+  const listHTML = state.sessions.map(s => {
+    const dateObj = new Date(s.date);
+    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const dur = s.durationSeconds ? formatDuration(s.durationSeconds) : '';
+    const hasWiki = !!s.wikiEntry;
+    return `
+      <div class="session-item" data-id="${s.id}">
+        <div class="session-item-icon">🐾</div>
+        <div class="session-item-body">
+          <div class="session-item-title">${escHtml(s.title)}</div>
+          <div class="session-item-meta">${dateStr} · ${timeStr}${dur ? ' · ' + dur : ''}</div>
+        </div>
+        <div class="session-item-badge${hasWiki ? '' : ' no-wiki'}">${hasWiki ? '✨ Wiki' : 'Transcript'}</div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `<div class="session-list">${listHTML}</div>`;
+
+  // Attach click handlers
+  container.querySelectorAll('.session-item').forEach(el => {
+    el.addEventListener('click', () => openDetail(el.dataset.id));
+  });
+}
+
+function formatDuration(sec) {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+// ─────────────────────────────────────────────────────────
+// SESSION DETAIL
+// ─────────────────────────────────────────────────────────
+function openDetail(id) {
+  loadSessions();
+  const session = state.sessions.find(s => s.id === id);
+  if (!session) return;
+
+  state.currentSessionId = id;
+  state.currentDetailTab = 'wiki';
+
+  document.getElementById('detail-title').textContent = session.title;
+  document.getElementById('detail-view').classList.add('open');
+
+  // Set active tab
+  document.querySelectorAll('.detail-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.detailTab === 'wiki');
+  });
+
+  renderDetailContent(session, 'wiki');
+}
+
+function closeDetail() {
+  document.getElementById('detail-view').classList.remove('open');
+  state.currentSessionId = null;
+}
+
+function renderDetailContent(session, tab) {
+  const content = document.getElementById('detail-content');
+  const dateStr = new Date(session.date).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true
+  });
+  const dur = session.durationSeconds ? ` · ${formatDuration(session.durationSeconds)}` : '';
+
+  if (tab === 'wiki') {
+    if (session.wikiEntry) {
+      content.innerHTML = `
+        <div class="detail-meta">${escHtml(dateStr)}${dur}</div>
+        <div class="wiki-rendered">${renderMarkdown(session.wikiEntry)}</div>`;
+    } else {
+      content.innerHTML = `
+        <div class="detail-meta">${escHtml(dateStr)}${dur}</div>
+        <div class="detail-text empty">No wiki entry yet.\n\nAdd a Claude API key in Settings, then record a new session to generate AI-powered entries.</div>`;
+    }
+  } else {
+    content.innerHTML = `
+      <div class="detail-meta">${escHtml(dateStr)}${dur}</div>
+      <div class="detail-text">${escHtml(session.transcript || '(No transcript available)')}</div>`;
+  }
+}
+
+function renderMarkdown(text) {
+  // Simple markdown → HTML converter for the wiki format
+  let html = escHtml(text);
+  // ## Headers
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  // **bold**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // *italic*
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Bullet points
+  html = html.replace(/^[-•] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  // Numbered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Paragraphs (double newlines)
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = html.replace(/\n/g, '\n');
+  // Wrap non-tag content in paragraphs
+  html = html.split('</p><p>').map(chunk => {
+    if (!chunk.startsWith('<h2>') && !chunk.startsWith('<ul>') && !chunk.startsWith('<li>')) {
+      return `<p>${chunk}</p>`;
+    }
+    return chunk;
+  }).join('');
+
+  return html;
+}
+
+// ─────────────────────────────────────────────────────────
+// GOOGLE DRIVE EXPORT
+// ─────────────────────────────────────────────────────────
+async function exportToDrive(sessionId) {
+  const session = state.sessions.find(s => s.id === sessionId);
+  if (!session) return;
+
+  const token = state.settings.driveToken;
+  if (!token) {
+    showToast('⚠️ Add your Google Drive token in Settings first.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-export');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Exporting...';
+
+  const dateStr = new Date(session.date).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true
+  });
+
+  const fileContent = [
+    `3rd Ear — Dog Training Session`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `Title: ${session.title}`,
+    `Date:  ${dateStr}`,
+    `Dog:   ${state.settings.dogName || 'Not specified'}`,
+    `Trainer: ${state.settings.trainerName || 'Not specified'}`,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `WIKI ENTRY`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    session.wikiEntry || '(No wiki entry — Claude API key needed)',
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `TRANSCRIPT`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    session.transcript || '(No transcript)',
+  ].join('\n');
+
+  const fileName = `3rd Ear — ${session.title}.txt`;
+  const blob = new Blob([fileContent], { type: 'text/plain' });
+
+  // Use Drive multipart upload
+  const boundary = '-------314159265358979323846';
+  const delimiter = '\r\n--' + boundary + '\r\n';
+  const closeDelimiter = '\r\n--' + boundary + '--';
+
+  const metadata = { name: fileName, mimeType: 'text/plain' };
+
+  const multipartBody =
+    delimiter +
+    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+    JSON.stringify(metadata) +
+    delimiter +
+    'Content-Type: text/plain\r\n\r\n' +
+    fileContent +
+    closeDelimiter;
+
+  try {
+    const res = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'multipart/related; boundary="' + boundary + '"',
+        },
+        body: multipartBody,
+      }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      showToast('✅ Exported to Google Drive!');
+    } else {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        showToast('⚠️ Token expired. Get a new one and update Settings.');
+      } else {
+        showToast('⚠️ Export failed: ' + (err.error?.message || res.status));
+      }
+    }
+  } catch(e) {
+    showToast('⚠️ Export failed. Check your connection.');
+    console.error('Drive export error:', e);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>☁️</span> Export to Google Drive';
+}
+
+// ─────────────────────────────────────────────────────────
+// SETTINGS
+// ─────────────────────────────────────────────────────────
+function populateSettings() {
+  const s = state.settings;
+  document.getElementById('s-dog-name').value = s.dogName || '';
+  document.getElementById('s-trainer-name').value = s.trainerName || '';
+  document.getElementById('s-goals').value = s.trainingGoals || '';
+  document.getElementById('s-claude-key').value = s.claudeApiKey || '';
+  document.getElementById('s-drive-token').value = s.driveToken || '';
+  updatePwChecks();
+}
+
+function updatePwChecks() {
+  const s = state.settings;
+  updateCheck('s-claude-key-check', !!s.claudeApiKey);
+  updateCheck('s-drive-token-check', !!s.driveToken);
+}
+
+function updateCheck(id, visible) {
+  const el = document.getElementById(id);
+  el.classList.toggle('visible', visible);
+  el.classList.toggle('hidden', !visible);
+}
+
+function collectSettings() {
+  state.settings.dogName = document.getElementById('s-dog-name').value.trim();
+  state.settings.trainerName = document.getElementById('s-trainer-name').value.trim();
+  state.settings.trainingGoals = document.getElementById('s-goals').value.trim();
+  state.settings.claudeApiKey = document.getElementById('s-claude-key').value.trim();
+  state.settings.driveToken = document.getElementById('s-drive-token').value.trim();
+}
+
+// ─────────────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────────────
+let toastTimeout;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─────────────────────────────────────────────────────────
+// UTILITIES
+// ─────────────────────────────────────────────────────────
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─────────────────────────────────────────────────────────
+// EVENT LISTENERS
+// ─────────────────────────────────────────────────────────
+function attachEvents() {
+
+  // Bottom nav
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!state.isRecording && !state.isProcessing) {
+        switchTab(btn.dataset.tab);
+      } else if (btn.dataset.tab !== 'record') {
+        showToast('Please stop recording first.');
+      }
+    });
+  });
+
+  // Mic button
+  document.getElementById('mic-btn').addEventListener('click', () => {
+    if (state.isProcessing) return;
+    if (state.isRecording) {
+      stopRecording();
+    } else {
+      // Clear success card on new recording
+      document.getElementById('success-card').classList.remove('visible');
+      document.getElementById('live-transcript-card').classList.remove('visible');
+      setStatus('Tap the mic to start', '');
+      document.getElementById('timer-display').textContent = '';
+      startRecording();
+    }
+  });
+
+  // View entry button (after save)
+  document.getElementById('btn-view-entry').addEventListener('click', () => {
+    if (state.lastSavedId) {
+      switchTab('wiki');
+      setTimeout(() => openDetail(state.lastSavedId), 150);
+    }
+  });
+
+  // Back button in detail view
+  document.getElementById('back-btn').addEventListener('click', () => {
+    closeDetail();
+    renderWikiList();
+  });
+
+  // Delete button in detail view
+  document.getElementById('detail-delete-btn').addEventListener('click', () => {
+    if (!state.currentSessionId) return;
+    if (confirm('Delete this session? This cannot be undone.')) {
+      deleteSession(state.currentSessionId);
+      closeDetail();
+      renderWikiList();
+      showToast('Session deleted.');
+    }
+  });
+
+  // Detail tab switcher
+  document.querySelectorAll('.detail-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.detailTab;
+      state.currentDetailTab = tab;
+      document.querySelectorAll('.detail-tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.detailTab === tab);
+      });
+      if (state.currentSessionId) {
+        loadSessions();
+        const session = state.sessions.find(s => s.id === state.currentSessionId);
+        if (session) renderDetailContent(session, tab);
+      }
+    });
+  });
+
+  // Export button
+  document.getElementById('btn-export').addEventListener('click', () => {
+    if (state.currentSessionId) exportToDrive(state.currentSessionId);
+  });
+
+  // Password show/hide toggles
+  document.querySelectorAll('.pw-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+      }
+    });
+  });
+
+  // Settings save
+  document.getElementById('settings-save-btn').addEventListener('click', () => {
+    collectSettings();
+    saveSettings();
+    updatePwChecks();
+    const msg = document.getElementById('settings-saved-msg');
+    msg.textContent = '✅ Settings saved!';
+    setTimeout(() => { msg.textContent = ''; }, 2500);
+  });
+
+  // Live-update pw checks as user types
+  document.getElementById('s-claude-key').addEventListener('input', function() {
+    updateCheck('s-claude-key-check', !!this.value.trim());
+  });
+  document.getElementById('s-drive-token').addEventListener('input', function() {
+    updateCheck('s-drive-token-check', !!this.value.trim());
+  });
+
+  // Handle URL param for tab
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('tab') === 'record') switchTab('record');
+}
+
+// ─────────────────────────────────────────────────────────
+// SERVICE WORKER
+// ─────────────────────────────────────────────────────────
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.log('SW registration failed:', err));
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────
+function init() {
+  loadSessions();
+  loadSettings();
+  initSpeech();
+  attachEvents();
+  registerSW();
+
+  // Prefill settings UI on load if already on settings tab
+  if (state.currentTab === 'settings') populateSettings();
+}
+
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
